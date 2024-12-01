@@ -1,24 +1,14 @@
-# aoc
+# AoC 2024
 
-[![Package Version](https://img.shields.io/hexpm/v/aoc)](https://hex.pm/packages/aoc)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/aoc/)
+Repository for the 2024 edition of [Advent Of Code](https://adventofcode.com/2024).
 
-```sh
-gleam add aoc@1
-```
-```gleam
-import aoc
+Casual playthrough 😅.
 
-pub fn main() {
-  // TODO: An example of the project in use
-}
-```
+## Running
 
-Further documentation can be found at <https://hexdocs.pm/aoc>.
-
-## Development
-
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
+```console
+# Test against example input
+gleam test
+# Run
+gleam run
 ```
