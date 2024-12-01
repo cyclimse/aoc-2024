@@ -1,3 +1,8 @@
+# Advent Of Code assets should not be redistributed
+# Reference: https://adventofcode.com/2024/about
+assets
+!assets/.gitkeep
+
 # Gleam
 *.beam
 *.ez
