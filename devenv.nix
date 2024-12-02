@@ -49,6 +49,12 @@ in
 
   # https://devenv.sh/pre-commit-hooks/
   # pre-commit.hooks.shellcheck.enable = true;
+  git-hooks.hooks.gleam-fmt = {
+    enable = true;
+    name = "Gleam format";
+    entry = "gleam format";
+    files = "\\.gleam$";
+  };
 
   # See full reference at https://devenv.sh/reference/options/
 }
