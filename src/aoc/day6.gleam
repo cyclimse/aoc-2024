@@ -3,6 +3,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{None, Some}
+import gleam/otp/task
 import gleam/result
 import gleam/set.{type Set}
 import gleam/string
@@ -205,27 +206,29 @@ pub fn part2(input: String) -> Int {
 
   visited
   |> dict.to_list
-  |> list.fold(0, fn(acc, x) {
-    let #(#(i, j), _) = x
-    // We update the tiles to place a potential obstacle
-    let updated_tiles = {
-      let assert Ok(row) = glearray.get(tiles, i)
-      let assert Ok(updated_row) = glearray.copy_set(row, j, Obstacle)
-      let assert Ok(updated_tiles) = glearray.copy_set(tiles, i, updated_row)
-      updated_tiles
-    }
+  |> list.map(fn(x) {
+    task.async(fn() {
+      let #(#(i, j), _) = x
+      // We update the tiles to place a potential obstacle
+      let updated_tiles = {
+        let assert Ok(row) = glearray.get(tiles, i)
+        let assert Ok(updated_row) = glearray.copy_set(row, j, Obstacle)
+        let assert Ok(updated_tiles) = glearray.copy_set(tiles, i, updated_row)
+        updated_tiles
+      }
 
-    let #(_, is_looping) =
-      step_until_done_part2(
-        updated_tiles,
-        dict.new(),
-        initial_i,
-        initial_j,
-        direction,
-      )
-    case is_looping {
-      True -> acc + 1
-      False -> acc
-    }
+      let #(_, is_looping) =
+        step_until_done_part2(
+          updated_tiles,
+          dict.new(),
+          initial_i,
+          initial_j,
+          direction,
+        )
+
+      is_looping
+    })
   })
+  |> list.map(task.await_forever)
+  |> list.count(fn(x) { x })
 }
