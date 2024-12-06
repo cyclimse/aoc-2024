@@ -1,13 +1,13 @@
+import aoc/scuffed/grid.{type Grid}
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/otp/task
-import gleam/result
 import gleam/set.{type Set}
 import gleam/string
-import glearray.{type Array}
+import gleam/yielder
 
 import simplifile
 
@@ -39,7 +39,7 @@ pub type Tile {
   Guard(direction: Direction)
 }
 
-pub fn parse_input(input: String) -> Array(Array(Tile)) {
+pub fn parse_input(input: String) -> Grid(Tile) {
   let tiles =
     input
     |> string.trim
@@ -60,36 +60,27 @@ pub fn parse_input(input: String) -> Array(Array(Tile)) {
           }
         })
         |> list.reverse
-        |> glearray.from_list
       [next_line, ..tiles]
     })
-  tiles |> list.reverse |> glearray.from_list
+  tiles |> list.reverse |> grid.must_from_list
 }
 
-fn dimensions(matrix: Array(Array(a))) -> #(Int, Int) {
-  let rows = matrix |> glearray.length
-  let assert Ok(first_row) = glearray.get(matrix, 0)
-  #(rows, first_row |> glearray.length)
-}
-
-fn find_initial_guard(tiles: Array(Array(Tile))) -> #(Int, Int, Direction) {
-  let #(rows, cols) = dimensions(tiles)
-  list.range(0, rows - 1)
-  |> list.fold(#(0, 0, North), fn(pos, i) {
-    let assert Ok(row) = glearray.get(tiles, i)
-    list.range(0, cols - 1)
-    |> list.fold(pos, fn(pos, j) {
-      let assert Ok(tile) = glearray.get(row, j)
+fn find_initial_guard(tiles: Grid(Tile)) -> #(Int, Int, Direction) {
+  let assert Ok(#(#(i, j), Guard(direction))) =
+    tiles
+    |> grid.iterate_with_index
+    |> yielder.find(fn(x) {
+      let #(_, tile) = x
       case tile {
-        Guard(direction:) -> #(i, j, direction)
-        _ -> pos
+        Guard(_) -> True
+        _ -> False
       }
     })
-  })
+  #(i, j, direction)
 }
 
 fn step_once(
-  tiles: Array(Array(Tile)),
+  tiles: Grid(Tile),
   i: Int,
   j: Int,
   direction: Direction,
@@ -100,11 +91,7 @@ fn step_once(
     South -> #(i + 1, j)
     West -> #(i, j - 1)
   }
-  let maybe_next_tile =
-    glearray.get(tiles, next_i)
-    |> result.map(fn(row) { glearray.get(row, next_j) })
-    |> result.flatten
-  case maybe_next_tile {
+  case grid.get(tiles, next_i, next_j) {
     // I'm a bit lazy so I will not clean up the previous guard position
     Ok(Empty) | Ok(Guard(_)) -> #(next_i, next_j, direction, True)
     Ok(Obstacle) -> #(i, j, turn_right_90_degrees(direction), True)
@@ -114,7 +101,7 @@ fn step_once(
 }
 
 fn step_until_done(
-  tiles: Array(Array(Tile)),
+  tiles: Grid(Tile),
   visited: Dict(#(Int, Int), Bool),
   i: Int,
   j: Int,
@@ -156,13 +143,12 @@ fn do_update(
 // To identify cycles, we add the direction to the visited dict
 // -> If we've visited the same position with the same direction, we're in a cycle
 fn step_until_done_part2(
-  tiles: Array(Array(Tile)),
+  tiles: Grid(Tile),
   visited: Dict(#(Int, Int), Set(Direction)),
   i: Int,
   j: Int,
   direction: Direction,
 ) -> #(Dict(#(Int, Int), Set(Direction)), Bool) {
-  // print_tiles_with_guard(tiles, i, j, direction)
   let updated_visited = do_update(visited, i, j, direction)
   let #(next_i, next_j, next_direction, continue) =
     step_once(tiles, i, j, direction)
@@ -180,7 +166,7 @@ fn step_until_done_part2(
             next_direction,
           )
         }
-        False -> #(updated_visited, False)
+        _ -> #(updated_visited, False)
       }
     }
     _ if continue -> {
@@ -209,14 +195,7 @@ pub fn part2(input: String) -> Int {
   |> list.map(fn(x) {
     task.async(fn() {
       let #(#(i, j), _) = x
-      // We update the tiles to place a potential obstacle
-      let updated_tiles = {
-        let assert Ok(row) = glearray.get(tiles, i)
-        let assert Ok(updated_row) = glearray.copy_set(row, j, Obstacle)
-        let assert Ok(updated_tiles) = glearray.copy_set(tiles, i, updated_row)
-        updated_tiles
-      }
-
+      let updated_tiles = grid.must_set(tiles, i, j, Obstacle)
       let #(_, is_looping) =
         step_until_done_part2(
           updated_tiles,
@@ -225,7 +204,6 @@ pub fn part2(input: String) -> Int {
           initial_j,
           direction,
         )
-
       is_looping
     })
   })
