@@ -1,4 +1,3 @@
-import aoc/scuffed/grid.{type Grid}
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/io
@@ -11,26 +10,13 @@ import gleam/yielder
 
 import simplifile
 
+import aoc/scuffed/direction.{type Direction, East, North, South, West}
+import aoc/scuffed/grid.{type Grid}
+
 pub fn day6() {
   let assert Ok(input) = simplifile.read("./assets/day6.txt")
   io.println("Day6/part1: " <> { part1(input) |> int.to_string })
   io.println("Day6/part2: " <> { part2(input) |> int.to_string })
-}
-
-pub type Direction {
-  North
-  East
-  South
-  West
-}
-
-fn turn_right_90_degrees(direction: Direction) -> Direction {
-  case direction {
-    North -> East
-    East -> South
-    South -> West
-    West -> North
-  }
 }
 
 pub type Tile {
@@ -83,20 +69,15 @@ fn step_once(
   tiles: Grid(Tile),
   i: Int,
   j: Int,
-  direction: Direction,
+  dir: Direction,
 ) -> #(Int, Int, Direction, Bool) {
-  let #(next_i, next_j) = case direction {
-    North -> #(i - 1, j)
-    East -> #(i, j + 1)
-    South -> #(i + 1, j)
-    West -> #(i, j - 1)
-  }
+  let #(next_i, next_j) = direction.step(dir, i, j)
   case grid.get(tiles, next_i, next_j) {
     // I'm a bit lazy so I will not clean up the previous guard position
-    Ok(Empty) | Ok(Guard(_)) -> #(next_i, next_j, direction, True)
-    Ok(Obstacle) -> #(i, j, turn_right_90_degrees(direction), True)
+    Ok(Empty) | Ok(Guard(_)) -> #(next_i, next_j, dir, True)
+    Ok(Obstacle) -> #(i, j, direction.turn_right(dir), True)
     // In case of out of bounds; we're done
-    Error(_) -> #(i, j, direction, False)
+    Error(_) -> #(i, j, dir, False)
   }
 }
 
@@ -111,9 +92,8 @@ fn step_until_done(
     step_once(tiles, i, j, direction)
   let updated_visited = dict.insert(visited, #(i, j), True)
   case continue {
-    True -> {
+    True ->
       step_until_done(tiles, updated_visited, next_i, next_j, next_direction)
-    }
     False -> updated_visited
   }
 }
