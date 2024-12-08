@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/result
+import gleam/string
 import gleam/yielder.{type Yielder, Done, Next}
 import glearray.{type Array}
 
@@ -70,7 +71,7 @@ pub fn dimensions(grid: Grid(a)) -> #(Int, Int) {
   #(grid.height, grid.width)
 }
 
-/// iterator returns an iterator over the elements of the grid.
+/// iterate returns an iterator over the elements of the grid.
 /// The iterator yields the elements in row-major order.
 pub fn iterate(grid: Grid(a)) -> Yielder(a) {
   let yield = fn(acc) {
@@ -93,4 +94,27 @@ pub fn iterate_with_index(grid: Grid(a)) -> Yielder(#(#(Int, Int), a)) {
     }
   }
   yielder.unfold(0, yield)
+}
+
+/// print prints the grid to the console.
+/// Handles adding newlines between rows and calling the provided show function.
+pub fn print(
+  grid: Grid(a),
+  show show: fn(a) -> String,
+  // The generic type b is used for io.debug which returns a String instead of Nil
+  with with: fn(String) -> b,
+) {
+  let reversed: List(String) =
+    iterate_with_index(grid)
+    |> yielder.fold([], fn(tail, elem) {
+      let #(#(_, col), value) = elem
+      case col == grid.width - 1 {
+        True -> ["\n", show(value), ..tail]
+        False -> [show(value), ..tail]
+      }
+    })
+  reversed
+  |> list.reverse
+  |> string.join("")
+  |> with
 }
