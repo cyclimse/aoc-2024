@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/io
@@ -64,14 +65,20 @@ fn get_first_empty_with_min_length(
   min_length: Int,
   upper_bound: Int,
 ) -> #(Int, Int) {
+  let yield = fn(i) {
+    use <- bool.guard(when: i >= upper_bound, return: Done)
+    case dict.get(disk.infos, i) {
+      Ok(Free(length:)) if length >= min_length ->
+        Next(element: Some(#(i, length)), accumulator: i + length)
+      Ok(Free(length:)) -> Next(element: None, accumulator: i + length)
+      Ok(File(_, length:)) -> Next(element: None, accumulator: i + length)
+      _ -> Done
+    }
+  }
+
   let res =
-    list.range(0, upper_bound)
-    |> list.find_map(fn(i) {
-      case dict.get(disk.infos, i) {
-        Ok(Free(length:)) if length >= min_length -> Ok(#(i, length))
-        _ -> Error(Nil)
-      }
-    })
+    yielder.unfold(0, yield)
+    |> yielder.find_map(fn(opt) { option.to_result(opt, Nil) })
   res
   |> result.unwrap(#(0, -1))
 }
