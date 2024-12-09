@@ -63,6 +63,7 @@ pub fn parse_input(input: String) -> Disk {
 fn get_first_empty_with_min_length(
   disk: Disk,
   min_length: Int,
+  lower_bound: Int,
   upper_bound: Int,
 ) -> #(Int, Int) {
   let yield = fn(i) {
@@ -77,7 +78,7 @@ fn get_first_empty_with_min_length(
   }
 
   let res =
-    yielder.unfold(0, yield)
+    yielder.unfold(lower_bound, yield)
     |> yielder.find_map(fn(opt) { option.to_result(opt, Nil) })
   res
   |> result.unwrap(#(0, -1))
@@ -106,22 +107,33 @@ fn move_file(disk: Disk, file: #(Int, Int, Int), empty: #(Int, Int)) -> Disk {
 
 fn defrag(disk: Disk) -> Disk {
   // The instructions say to attempt to move the files by reverse id and only once
-  yielder.range(from: disk.maxid, to: 0)
-  |> yielder.fold(disk, fn(disk, id) {
-    // Get the length of the file to move
-    let #(from, length) = case dict.get(disk.lookup_by_id, id) {
-      Ok(pair) -> pair
-      _ -> panic as "File not found"
-    }
-    // Find the first empty slot
-    let #(empty_i, empty_length) =
-      get_first_empty_with_min_length(disk, length, from - 1)
-    // If the empty slot is big enough, move the file
-    case empty_length >= length {
-      True -> move_file(disk, #(from, id, length), #(empty_i, empty_length))
-      False -> disk
-    }
-  })
+  let #(disk, _) =
+    yielder.range(from: disk.maxid, to: 0)
+    |> yielder.fold(#(disk, dict.new()), fn(pair, id) {
+      let #(disk, lower_bound_per_min_length) = pair
+      // Get the length of the file to move
+      let #(from, length) = case dict.get(disk.lookup_by_id, id) {
+        Ok(pair) -> pair
+        _ -> panic as "File not found"
+      }
+      let lower_bound =
+        dict.get(lower_bound_per_min_length, length) |> result.unwrap(0)
+      // Find the first empty slot
+      let upper_bound = from - 1
+      let #(empty_i, empty_length) =
+        get_first_empty_with_min_length(disk, length, lower_bound, upper_bound)
+      let lower_bound_per_min_length =
+        dict.insert(lower_bound_per_min_length, length, empty_i + length)
+      // If the empty slot is big enough, move the file
+      case empty_length >= length {
+        True -> #(
+          move_file(disk, #(from, id, length), #(empty_i, empty_length)),
+          lower_bound_per_min_length,
+        )
+        False -> #(disk, lower_bound_per_min_length)
+      }
+    })
+  disk
 }
 
 pub fn checksum(disk: Disk) -> Int {
