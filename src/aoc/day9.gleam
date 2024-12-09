@@ -22,7 +22,8 @@ pub type Disk {
     infos: Dict(Int, DiskInfo),
     lookup_by_id: Dict(Int, #(Int, Int)),
     size: Int,
-    maxid: Int,
+    max_file_id: Int,
+    max_file_size: Int,
   )
 }
 
@@ -35,8 +36,8 @@ pub fn parse_input(input: String) -> Disk {
   input
   |> string.trim
   |> string.to_graphemes
-  |> list.index_fold(Disk(dict.new(), dict.new(), 0, 0), fn(disk, char, i) {
-    let Disk(infos, lookup_by_id, size, maxid) = disk
+  |> list.index_fold(Disk(dict.new(), dict.new(), 0, 0, 0), fn(disk, char, i) {
+    let Disk(infos, lookup_by_id, size, max_file_id, max_file_size) = disk
     let num = case int.parse(char) {
       Ok(n) -> n
       Error(_) -> panic as { "Invalid input: " <> char }
@@ -47,14 +48,16 @@ pub fn parse_input(input: String) -> Disk {
           dict.insert(infos, size, File(id: i / 2, length: num)),
           dict.insert(lookup_by_id, i / 2, #(size, num)),
           num + size,
-          int.max(maxid, i / 2),
+          int.max(max_file_id, i / 2),
+          int.max(max_file_size, num),
         )
       1 if num > 0 ->
         Disk(
           dict.insert(infos, size, Free(length: num)),
           lookup_by_id,
           num + size,
-          maxid,
+          max_file_id,
+          max_file_size,
         )
       // Ignore empty space of length 0
       _ -> disk
@@ -110,7 +113,7 @@ fn move_file(disk: Disk, file: #(Int, Int, Int), empty: #(Int, Int)) -> Disk {
 fn defrag(disk: Disk) -> Disk {
   // The instructions say to attempt to move the files by reverse id and only once
   let #(disk, _) =
-    yielder.range(from: disk.maxid, to: 0)
+    yielder.range(from: disk.max_file_id, to: 0)
     |> yielder.fold(#(disk, dict.new()), fn(pair, id) {
       let #(disk, lower_bound_per_min_length) = pair
       // Get the length of the file to move
@@ -125,7 +128,15 @@ fn defrag(disk: Disk) -> Disk {
       let #(empty_i, empty_length) =
         get_first_empty_with_min_length(disk, length, lower_bound, upper_bound)
       let lower_bound_per_min_length =
-        dict.insert(lower_bound_per_min_length, length, empty_i + length)
+        list.range(length, disk.max_file_size)
+        |> list.fold(lower_bound_per_min_length, fn(dict, i) {
+          dict.upsert(dict, i, fn(opt) {
+            case opt {
+              Some(previous) -> int.max(previous, empty_i + length)
+              None -> empty_i + length
+            }
+          })
+        })
       // If the empty slot is big enough, move the file
       case empty_length >= length {
         True -> #(

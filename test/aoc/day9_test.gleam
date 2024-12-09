@@ -24,7 +24,8 @@ pub fn parse_input_test() {
         #(2, #(10, 5)),
       ]),
       size: 15,
-      maxid: 2,
+      max_file_id: 2,
+      max_file_size: 5,
     )
   got_disk |> should.equal(expected_disk)
 }
