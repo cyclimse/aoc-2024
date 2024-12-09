@@ -5,10 +5,12 @@ import gleam/result
 import gleam/string
 import simplifile
 
+import aoc/scuffed/debug
+
 pub fn day2() {
   let assert Ok(input) = simplifile.read("./assets/day2.txt")
-  io.println("Day2/part1: " <> { part1(input) |> int.to_string })
-  io.println("Day2/part2: " <> { part2(input) |> int.to_string })
+  io.println("Day2/part1: " <> debug.run_and_time(part1, input, int.to_string))
+  io.println("Day2/part2: " <> debug.run_and_time(part2, input, int.to_string))
 }
 
 pub fn parse_input(input: String) -> List(List(Int)) {

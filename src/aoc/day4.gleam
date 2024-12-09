@@ -6,10 +6,12 @@ import gleam/string
 import glearray.{type Array}
 import simplifile
 
+import aoc/scuffed/debug
+
 pub fn day4() {
   let assert Ok(input) = simplifile.read("./assets/day4.txt")
-  io.println("Day4/part1: " <> { part1(input) |> int.to_string })
-  io.println("Day4/part2: " <> { part2(input) |> int.to_string })
+  io.println("Day4/part1: " <> debug.run_and_time(part1, input, int.to_string))
+  io.println("Day4/part2: " <> debug.run_and_time(part2, input, int.to_string))
 }
 
 pub fn parse_input(input: String) -> Array(Array(String)) {

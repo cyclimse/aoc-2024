@@ -2,21 +2,20 @@ import gleam/dict.{type Dict}
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/option.{None, Some}
 import gleam/otp/task
-import gleam/set.{type Set}
 import gleam/string
 import gleam/yielder
 
 import simplifile
 
+import aoc/scuffed/debug
 import aoc/scuffed/direction.{type Direction, East, North, South, West}
 import aoc/scuffed/grid.{type Grid}
 
 pub fn day6() {
   let assert Ok(input) = simplifile.read("./assets/day6.txt")
-  io.println("Day6/part1: " <> { part1(input) |> int.to_string })
-  io.println("Day6/part2: " <> { part2(input) |> int.to_string })
+  io.println("Day6/part1: " <> debug.run_and_time(part1, input, int.to_string))
+  io.println("Day6/part2: " <> debug.run_and_time(part2, input, int.to_string))
 }
 
 pub type Tile {
@@ -105,50 +104,22 @@ pub fn part1(input: String) -> Int {
   dict.size(visited)
 }
 
-fn do_update(
-  visited: Dict(#(Int, Int), Set(Direction)),
-  i: Int,
-  j: Int,
-  direction: Direction,
-) -> Dict(#(Int, Int), Set(Direction)) {
-  dict.upsert(visited, #(i, j), fn(x) {
-    case x {
-      Some(already) -> already |> set.insert(direction)
-      None -> set.new() |> set.insert(direction)
-    }
-  })
-}
-
 // The twist is to identify when the guard is looping in a cycle
 // To identify cycles, we add the direction to the visited dict
 // -> If we've visited the same position with the same direction, we're in a cycle
 fn step_until_done_part2(
   tiles: Grid(Tile),
-  visited: Dict(#(Int, Int), Set(Direction)),
+  visited: Dict(#(Int, Int, Direction), Bool),
   i: Int,
   j: Int,
   direction: Direction,
-) -> #(Dict(#(Int, Int), Set(Direction)), Bool) {
-  let updated_visited = do_update(visited, i, j, direction)
+) -> #(Dict(#(Int, Int, Direction), Bool), Bool) {
+  let updated_visited = dict.insert(visited, #(i, j, direction), True)
   let #(next_i, next_j, next_direction, continue) =
     step_once(tiles, i, j, direction)
-  case dict.get(visited, #(next_i, next_j)) {
+  case dict.get(visited, #(next_i, next_j, next_direction)) {
     // We've visited the same position with the same direction -> cycle
-    Ok(already) -> {
-      case set.contains(already, next_direction) {
-        True -> #(updated_visited, True)
-        False if continue -> {
-          step_until_done_part2(
-            tiles,
-            updated_visited,
-            next_i,
-            next_j,
-            next_direction,
-          )
-        }
-        _ -> #(updated_visited, False)
-      }
-    }
+    Ok(True) -> #(updated_visited, True)
     _ if continue -> {
       step_until_done_part2(
         tiles,

@@ -10,12 +10,13 @@ import gleam/yielder
 
 import simplifile
 
+import aoc/scuffed/debug
 import aoc/scuffed/grid.{type Grid}
 
 pub fn day8() {
   let assert Ok(input) = simplifile.read("./assets/day8.txt")
-  io.println("Day8/part1: " <> { part1(input) |> int.to_string })
-  io.println("Day8/part2: " <> { part2(input) |> int.to_string })
+  io.println("Day8/part1: " <> debug.run_and_time(part1, input, int.to_string))
+  io.println("Day8/part2: " <> debug.run_and_time(part2, input, int.to_string))
 }
 
 pub type Tile {

@@ -10,9 +10,11 @@ import gleam/yielder.{Done, Next}
 
 import simplifile
 
+import aoc/scuffed/debug
+
 pub fn day9() {
   let assert Ok(input) = simplifile.read("./assets/day9.txt")
-  io.println("Day9/part2: " <> { part2(input) |> int.to_string })
+  io.println("Day9/part2: " <> debug.run_and_time(part2, input, int.to_string))
 }
 
 pub type Disk {
