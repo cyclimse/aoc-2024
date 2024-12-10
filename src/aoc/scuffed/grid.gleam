@@ -96,6 +96,28 @@ pub fn iterate_with_index(grid: Grid(a)) -> Yielder(#(#(Int, Int), a)) {
   yielder.unfold(0, yield)
 }
 
+/// neighbors_of returns the neighbors of the given row and column.
+pub fn neighbors_of(
+  grid: Grid(a),
+  row: Int,
+  col: Int,
+) -> List(#(a, #(Int, Int))) {
+  let neighbours = [
+    #(row - 1, col),
+    #(row + 1, col),
+    #(row, col - 1),
+    #(row, col + 1),
+  ]
+  neighbours
+  |> list.filter_map(fn(coords) {
+    let #(x, y) = coords
+    case get(grid, x, y) {
+      Ok(value) -> Ok(#(value, coords))
+      Error(_) -> Error(Nil)
+    }
+  })
+}
+
 /// print prints the grid to the console.
 /// Handles adding newlines between rows and calling the provided show function.
 pub fn print(
