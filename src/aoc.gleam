@@ -1,5 +1,6 @@
 import aoc/day1
 import aoc/day10
+import aoc/day11
 import aoc/day2
 import aoc/day3
 import aoc/day4
@@ -20,4 +21,5 @@ pub fn main() {
   day8.day8()
   day9.day9()
   day10.day10()
+  day11.day11()
 }

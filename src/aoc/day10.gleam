@@ -132,13 +132,10 @@ fn simple_dfs_with_loops(
       let neighbors = adjacency_list |> dict.get(start)
       case neighbors {
         Error(_) -> 0
-        Ok(neigh) -> {
+        Ok(neigh) ->
           neigh
-          |> list.map(fn(neigh) {
-            simple_dfs_with_loops(grid, adjacency_list, neigh)
-          })
+          |> list.map(simple_dfs_with_loops(grid, adjacency_list, _))
           |> int.sum
-        }
       }
     }
   }
