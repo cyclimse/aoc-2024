@@ -108,7 +108,7 @@ pub fn part1(input: String) -> Int {
   }
   list.range(1, 25)
   |> list.fold(stones, fn(acc, _) { blink_once(acc) })
-  |> int.sum
+  |> list.length
 }
 
 pub fn part2(input: String) -> Int {
